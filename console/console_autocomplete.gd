@@ -16,12 +16,12 @@ func setup() -> void:
 	suggestion_panel.visible = false
 	
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.1, 0.9)
+	style.bg_color = Color(0.1, 0.1, 0.1, 0.94)
 	style.border_width_left = 1
 	style.border_width_right = 1
 	style.border_width_top = 1
 	style.border_width_bottom = 1
-	style.border_color = Color(0.3, 0.3, 0.3)
+	style.border_color = GConsoleTheme.color_of(GConsoleTheme.Level.MUTED)
 	suggestion_panel.add_theme_stylebox_override("panel", style)
 	
 	suggestion_list.size_flags_horizontal = Control.SIZE_EXPAND
@@ -79,12 +79,13 @@ func refresh() -> void:
 		child.queue_free()
 	
 	# Add new suggestions
-	for i in range(min(8, suggestions.size())):
+	var shown : int = int(GConsoleSettings.get_value(GConsoleSettings.SUGGESTION_LIMIT))
+	for i in range(min(shown, suggestions.size())):
 		var label := Label.new()
 		label.text = suggestions[i]
-		label.add_theme_color_override("font_color", Color.WHITE)
+		label.add_theme_color_override("font_color", GConsoleTheme.color_of(GConsoleTheme.Level.SUGGESTION_SELECTED))
 		if i == current_suggest:
-			label.add_theme_color_override("font_color", Color.YELLOW)
+			label.add_theme_color_override("font_color", GConsoleTheme.color_of(GConsoleTheme.Level.SUGGESTION))
 		suggestion_list.add_child(label)
 	
 	# Position the panel
@@ -101,12 +102,12 @@ func cycle() -> void:
 	for i in range(children.size()):
 		var label := children[i] as Label
 		if i == current_suggest:
-			label.add_theme_color_override("font_color", Color.YELLOW)
+			label.add_theme_color_override("font_color", GConsoleTheme.color_of(GConsoleTheme.Level.SUGGESTION))
 			if i < suggestions.size():
 				console.line_edit.text = suggestions[i]
 				console.line_edit.caret_column = console.line_edit.text.length()
 		else:
-			label.add_theme_color_override("font_color", Color.WHITE)
+			label.add_theme_color_override("font_color", GConsoleTheme.color_of(GConsoleTheme.Level.SUGGESTION_SELECTED))
 	
 	suggesting = true
 
