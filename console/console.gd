@@ -1,24 +1,11 @@
 extends Node
 
-# ─── Settings Keys ──────────────────────────────────────────────────────────
-const SINGLETON_NAME := &"Console"
-const CONSOLE_THEME : String = "console/theme"
-const CONSOLE_SCALE : String = "console/scale"
-const CONSOLE_HEIGHT : String = "console/height"
-const CONSOLE_COLOR_WARNING : String = "console/color_warning"
-const CONSOLE_COLOR_ERROR : String = "console/color_error"
-const CONSOLE_COLOR_INFO : String = "console/color_info"
-const CONSOLE_COLOR_LITERAL : String = "console/color_literal"
-const CONSOLE_TABSTOP : String = "console/tabstop"
-const CONSOLE_CANVAS_LAYER : String = "console/canvas_layer"
+# ─── Settings ───────────────────────────────────────────────────────────────
+# Keys, defaults and colours all live in console_settings.gd. They used to be
+# duplicated here AND in console_plugin.gd behind a "should be maintained in one
+# place" FIXME - that duplication is what let the two lists drift apart.
 
-# ─── Default Colors ────────────────────────────────────────────────────────
-const color_dictionary : Dictionary[String, Color] = {
-	CONSOLE_COLOR_ERROR: Color.LIGHT_CORAL,
-	CONSOLE_COLOR_INFO: Color.LIGHT_BLUE,
-	CONSOLE_COLOR_LITERAL: Color.PALE_GREEN,
-	CONSOLE_COLOR_WARNING: Color.LIGHT_GOLDENROD
-}
+const SINGLETON_NAME := &"GConsole"
 
 # ─── Signals ──────────────────────────────────────────────────────────────
 signal console_opened()
@@ -34,6 +21,13 @@ var font_size : int = 0 : set = _set_font_size
 var console_scale : float = 1.0 : set = set_console_scale
 var console_full_screen : bool = false
 var tab_string : String = "    "
+## Lines kept in the output buffer. 0 means unlimited.
+var scrollback_limit : int = 500
+## Print each command back above its result, the way a terminal does.
+var echo_commands : bool = true
+## Every line printed this session, so scrollback can be re-rendered after a
+## trim without losing what came before.
+var _scrollback : PackedStringArray = []
 
 # ─── UI Components (Exposed for customization) ─────────────────────────
 var canvas_layer := CanvasLayer.new()
@@ -113,16 +107,15 @@ func _enter_tree() -> void:
 	history.load_history()
 	cvars.load_from_file()
 
-	if ProjectSettings.has_setting(CONSOLE_THEME):
-		var theme: Resource = load(ProjectSettings.get_setting(CONSOLE_THEME))
-		if theme:
-			v_box_container.theme = theme
+	# A checked-in gconsole.cfg wins over Project Settings, so a teammate who
+	# pulls the file gets its values without opening the settings dialog.
+	GConsoleSettings.load_project_config()
+	GConsoleTheme.apply_to(v_box_container)
 
-	if ProjectSettings.has_setting(CONSOLE_TABSTOP):
-		tab_string = ""
-		var tab_count: int = ProjectSettings.get_setting(CONSOLE_TABSTOP)
-		for i in range(tab_count):
-			tab_string += " "
+	tab_string = " ".repeat(int(GConsoleSettings.get_value(GConsoleSettings.TABSTOP)))
+	pause_enabled = bool(GConsoleSettings.get_value(GConsoleSettings.PAUSE_WHEN_OPEN))
+	scrollback_limit = int(GConsoleSettings.get_value(GConsoleSettings.SCROLLBACK_LIMIT))
+	echo_commands = bool(GConsoleSettings.get_value(GConsoleSettings.ECHO_COMMANDS))
 
 	_setup_ui()
 	commands.register_builtins()
@@ -134,7 +127,7 @@ func _exit_tree() -> void:
 
 # ─── UI Setup ──────────────────────────────────────────────────────────
 func _setup_ui() -> void:
-	canvas_layer.layer = ProjectSettings.get_setting(CONSOLE_CANVAS_LAYER, 3)
+	canvas_layer.layer = int(GConsoleSettings.get_value(GConsoleSettings.CANVAS_LAYER))
 	add_child(canvas_layer)
 
 	console_scale = _get_console_scale_setting()
@@ -154,7 +147,7 @@ func _setup_ui() -> void:
 	rich_label.scroll_following = true
 	rich_label.anchor_right = 1.0
 	rich_label.anchor_bottom = 1.0
-	rich_label.install_effect(preload("system_color.gd").new())
+	rich_label.install_effect(GConsoleSystemColor.new())
 	panel.add_child(rich_label)
 
 	rich_label.append_text("Development console.\n")
@@ -176,9 +169,7 @@ func _setup_ui() -> void:
 
 # ─── Settings Helpers ──────────────────────────────────────────────────
 func _get_console_scale_setting() -> float:
-	if ProjectSettings.has_setting(CONSOLE_SCALE):
-		return ProjectSettings.get_setting(CONSOLE_SCALE)
-	return 1.0
+	return float(GConsoleSettings.get_value(GConsoleSettings.SCALE))
 
 func set_console_scale(scale : float) -> void:
 	console_scale = scale
@@ -189,8 +180,8 @@ func set_console_scale(scale : float) -> void:
 func _get_console_height() -> float:
 	if console_full_screen:
 		return 1.0 / console_scale
-	if ProjectSettings.has_setting(CONSOLE_HEIGHT):
-		return ProjectSettings.get_setting(CONSOLE_HEIGHT) / console_scale
+	if true:
+		return float(GConsoleSettings.get_value(GConsoleSettings.HEIGHT)) / console_scale
 	return 0.5 / console_scale
 
 func _get_console_width() -> float:
@@ -325,6 +316,10 @@ func _handle_mouse_input(event: InputEventMouseButton) -> void:
 
 # ─── Text Processing ──────────────────────────────────────────────────
 func _on_text_entered(new_text: String) -> void:
+	# Echoed before execution so the transcript reads in the order things
+	# happened: the command, then whatever it printed.
+	if not new_text.strip_edges().is_empty():
+		print_command(new_text)
 	executor.execute(new_text)
 
 func _on_line_edit_text_changed(new_text: String) -> void:
@@ -371,23 +366,55 @@ func print_line(text: Variant, print_godot := false) -> void:
 	else:
 		rich_label.append_text(text as String)
 		rich_label.append_text("\n")
+		_scrollback.append(text as String)
+		_trim_scrollback()
 		if print_godot:
 			print_rich((text as String).dedent())
 
 func print_error(text: Variant, print_godot := false) -> void:
-	if not text is String:
-		text = str(text)
-	print_line('%s[system_color color=CONSOLE_COLOR_ERROR]ERROR:[/system_color] %s' % [tab_string, text], print_godot)
-
-func print_info(text: Variant, print_godot := false) -> void:
-	if not text is String:
-		text = str(text)
-	print_line('%s[system_color color=CONSOLE_COLOR_INFO]INFO:[/system_color] %s' % [tab_string, text], print_godot)
+	_print_level(text, GConsoleTheme.Level.ERROR, "ERROR", print_godot)
 
 func print_warning(text: Variant, print_godot := false) -> void:
+	_print_level(text, GConsoleTheme.Level.WARNING, "WARNING", print_godot)
+
+func print_info(text: Variant, print_godot := false) -> void:
+	_print_level(text, GConsoleTheme.Level.INFO, "INFO", print_godot)
+
+func print_success(text: Variant, print_godot := false) -> void:
+	_print_level(text, GConsoleTheme.Level.SUCCESS, "OK", print_godot)
+
+func print_debug_line(text: Variant, print_godot := false) -> void:
+	_print_level(text, GConsoleTheme.Level.DEBUG, "DEBUG", print_godot)
+
+## Echoes a command the way a terminal does, so scrollback reads as a
+## transcript of what was run rather than a wall of bare results.
+func print_command(text: String) -> void:
+	if not echo_commands:
+		return
+	print_line("%s %s" % [
+		GConsoleTheme.wrap(">", GConsoleTheme.Level.MUTED),
+		GConsoleTheme.wrap(text, GConsoleTheme.Level.COMMAND),
+	])
+
+## Colours come from GConsoleTheme, so retheming never means editing this file.
+func _print_level(text: Variant, level: GConsoleTheme.Level, tag: String,
+		print_godot: bool) -> void:
 	if not text is String:
 		text = str(text)
-	print_line('%s[system_color color=CONSOLE_COLOR_WARNING]WARNING:[/system_color] %s' % [tab_string, text], print_godot)
+	print_line("%s%s %s" % [
+		tab_string, GConsoleTheme.wrap(tag + ":", level), text
+	], print_godot)
+
+## Drops the oldest lines once the buffer exceeds scrollback_limit. Without this
+## a long session grows the RichTextLabel without bound.
+func _trim_scrollback() -> void:
+	if scrollback_limit <= 0 or _scrollback.size() <= scrollback_limit:
+		return
+	var keep := _scrollback.slice(_scrollback.size() - scrollback_limit)
+	_scrollback = PackedStringArray(keep)
+	rich_label.clear()
+	for line in _scrollback:
+		rich_label.append_text(line + "\n")
 
 # ─── Forwarding methods for external registration ────────────────────
 func add_command(command_name: String, function: Callable, arguments: Array = [], required: int = 0, description: String = "") -> void:

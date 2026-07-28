@@ -35,7 +35,7 @@ func execute(new_text: String) -> void:
 	console.print_error("Unknown command or variable.")
 
 func _execute_command(command: String, arguments: PackedStringArray) -> void:
-	var cmd: Console.ConsoleCommand = console.commands.commands[command]
+	var cmd: GConsole.ConsoleCommand = console.commands.commands[command]
 
 	if command == "calc":
 		cmd.function.callv(["".join(arguments)])

@@ -2,14 +2,14 @@ extends RefCounted
 class_name ConsoleCVars
 
 var console: Node
-var cvars: Dictionary[String, Console.ConsoleCvar] = {}
+var cvars: Dictionary[String, GConsole.ConsoleCvar] = {}
 var pending_values: Dictionary[String, Variant] = {}
 
 func _init(in_console: Node) -> void:
 	console = in_console
 
 func add_cvar(cvar_name: String, default_value: Variant, description: String = "", save: bool = false) -> void:
-	var cvar := Console.ConsoleCvar.new(cvar_name, typeof(default_value), description, save)
+	var cvar := GConsole.ConsoleCvar.new(cvar_name, typeof(default_value), description, save)
 	cvar.value = default_value
 	cvars[cvar_name] = cvar
 	_apply_pending(cvar)
@@ -18,7 +18,7 @@ func add_cvar_reference(cvar_name: String, object: Object, property: String, des
 	if not is_instance_valid(object):
 		console.print_error('Cannot register cvar "%s": invalid object.' % cvar_name)
 		return
-	var cvar := Console.ConsoleCvar.new(cvar_name, typeof(object.get_indexed(property)), description, save)
+	var cvar := GConsole.ConsoleCvar.new(cvar_name, typeof(object.get_indexed(property)), description, save)
 	cvar.object = object
 	cvar.property = property
 	cvars[cvar_name] = cvar
@@ -62,7 +62,7 @@ func handle_cvar(cvar_name: String, arguments: PackedStringArray) -> void:
 	console.console_cvar_changed.emit(cvar.name, result[1])
 	_print_value(cvar)
 
-func _print_value(cvar: Console.ConsoleCvar) -> void:
+func _print_value(cvar: GConsole.ConsoleCvar) -> void:
 	console.print_line('%s = [system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color]' % [cvar.name, str(cvar.get_value())])
 
 func _coerce_string_to_type(string_value: String, type: int) -> Array:
@@ -94,7 +94,7 @@ func _coerce_string_to_type(string_value: String, type: int) -> Array:
 				return [true, parsed]
 			return [false, null]
 
-func _apply_pending(cvar: Console.ConsoleCvar) -> void:
+func _apply_pending(cvar: GConsole.ConsoleCvar) -> void:
 	if cvar.save and pending_values.has(cvar.name):
 		var saved_value : Variant = pending_values[cvar.name]
 		if typeof(saved_value) != cvar.type:

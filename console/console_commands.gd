@@ -2,7 +2,7 @@ extends RefCounted
 class_name ConsoleCommands
 
 var console: Node
-var commands: Dictionary[String, Console.ConsoleCommand] = {}
+var commands: Dictionary[String, GConsole.ConsoleCommand] = {}
 var command_parameters: Dictionary[String, PackedStringArray] = {}
 
 func _init(in_console: Node) -> void:
@@ -20,7 +20,7 @@ func add_command(command_name: String, function: Callable, arguments = [], requi
 			param_array.append(str(arg))
 	else:
 		param_array = PackedStringArray()
-	commands[command_name] = Console.ConsoleCommand.new(function, param_array, required, description)
+	commands[command_name] = GConsole.ConsoleCommand.new(function, param_array, required, description)
 
 func add_hidden_command(command_name: String, function: Callable, arguments = [], required: int = 0) -> void:
 	add_command(command_name, function, arguments, required)
@@ -50,6 +50,19 @@ func register_builtins() -> void:
 	add_command("pause", _pause, 0, 0)
 	add_command("unpause", _unpause, 0, 0)
 	add_command("exec", _exec, 1, 1)
+	add_command(
+		"load_level",
+		Callable(ConsoleLevelUtils, "load_level").bind(console),
+		["level"],
+		1,
+		"Loads a level."
+	)
+
+	add_command_autocomplete_list(
+		"load_level",
+		ConsoleLevelUtils.get_level_names()
+	)
+	
 
 # ─── Built‑in implementations ──────────────────────────────────────────
 
@@ -104,7 +117,7 @@ func _commands_list() -> void:
 			list.append(str(command))
 	list.sort()
 	for command in list:
-		var cmd: Console.ConsoleCommand = commands[command]
+		var cmd: GConsole.ConsoleCommand = commands[command]
 		var args := ""
 		for i in range(cmd.arguments.size()):
 			if i < cmd.required:
@@ -118,7 +131,7 @@ func _cvars() -> void:
 	var names: Array = console.cvars.cvars.keys()
 	names.sort()
 	for cvar_name in names:
-		var cvar: Console.ConsoleCvar = console.cvars.cvars[cvar_name]
+		var cvar: GConsole.ConsoleCvar = console.cvars.cvars[cvar_name]
 		var value_string := "<invalid>"
 		if cvar.is_alive():
 			value_string = str(cvar.get_value())
@@ -167,3 +180,5 @@ func _exec(filename: String) -> void:
 			console._on_text_entered(script.get_line())
 	else:
 		console.print_error("File %s not found." % [path])
+
+	
