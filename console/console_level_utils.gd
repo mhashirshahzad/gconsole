@@ -11,6 +11,17 @@ class_name ConsoleLevelUtils
 static var _level_paths: Dictionary = {}
 static var _initialized := false
 
+## Optional hook a host game can install to take over loading — to fade, save,
+## close menus, whatever it needs. Receives the resolved res:// path.
+##
+## Without it the scene is swapped directly, so the plugin still works standalone
+## in a project that has no transition system. With it, the game keeps its
+## polish and does not need a second, competing level command.
+##
+##     ConsoleLevelUtils.loader = func(path: String) -> void:
+##         UIManager.change_level(path)
+static var loader : Callable = Callable()
+
 
 ## `console` is LAST because the command is registered with
 ## `Callable(...).bind(console)`, and bind() APPENDS its arguments. With the
@@ -30,6 +41,10 @@ static func load_level(level_name: String, console: Node) -> void:
 		return
 
 	console.print_info("Loading %s" % path)
+
+	if loader.is_valid():
+		loader.call(path)
+		return
 	console.get_tree().change_scene_to_file(path)
 
 
