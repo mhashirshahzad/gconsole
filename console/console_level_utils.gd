@@ -1,13 +1,16 @@
 extends RefCounted
 class_name ConsoleLevelUtils
 
-const LEVELS_DIR : String = "res://levels"
-const LEVELS_PFX : String = "_level"
+static var levels_dir : String = "res://levels"
+static var levels_pfx : String = "_level"
 
 static var _level_paths: Dictionary = {}
 static var _initialized := false
 
-
+func _init() -> void:
+	levels_pfx = GConsoleSettings.get_value(GConsoleSettings.LEVELS_PREFIX)
+	levels_dir = GConsoleSettings.get_value(GConsoleSettings.LEVELS_DIR)
+	
 static func load_level(console: Node, level_name: String) -> void:
 	_ensure_initialized()
 
@@ -19,7 +22,7 @@ static func load_level(console: Node, level_name: String) -> void:
 
 	var scene_path: String = _level_paths[key]
 
-	console.rich_label.append_text(
+	console.print_line(
 		"Opened level [system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color]\n"
 		% scene_path
 	)
@@ -40,7 +43,7 @@ static func _ensure_initialized() -> void:
 		return
 
 	_level_paths.clear()
-	_scan_directory(LEVELS_DIR)
+	_scan_directory(levels_dir)
 	_initialized = true
 
 
@@ -72,6 +75,6 @@ static func _scan_directory(path: String) -> void:
 
 static func _is_level_scene(file_name: String) -> bool:
 	return (
-		file_name.ends_with(LEVELS_PFX + ".tscn")
-		or file_name.ends_with(LEVELS_PFX + ".scn")
+		file_name.ends_with(levels_pfx + ".tscn")
+		or file_name.ends_with(levels_pfx + ".scn")
 	)

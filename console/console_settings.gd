@@ -22,7 +22,7 @@ const CONFIG_PATH : String = "res://gconsole.cfg"
 const THEME : String = "gconsole/display/theme"
 const SCALE : String = "gconsole/display/scale"
 const HEIGHT : String = "gconsole/display/height"
-const CANVAS_LAYER : String = "gconsole/display/canvas_layer"
+const CONSOLE_WINDOW : String = "gconsole/display/console_window"
 const FONT_SIZE : String = "gconsole/display/font_size"
 
 const TABSTOP : String = "gconsole/behaviour/tabstop"
@@ -31,6 +31,10 @@ const HISTORY_LIMIT : String = "gconsole/behaviour/history_limit"
 const SCROLLBACK_LIMIT : String = "gconsole/behaviour/scrollback_limit"
 const ECHO_COMMANDS : String = "gconsole/behaviour/echo_commands"
 const SUGGESTION_LIMIT : String = "gconsole/behaviour/suggestion_limit"
+
+const LEVELS_DIR : String  = "gconsole/level_utils/levels_dir"
+const LEVELS_PREFIX : String = "gconsole/level_utils/levels_prefix"
+
 
 const COLOR_TEXT : String = "gconsole/colors/text"
 const COLOR_COMMAND : String = "gconsole/colors/command"
@@ -57,8 +61,6 @@ static func definitions() -> Array[Dictionary]:
 			"Visual scale of the whole console."),
 		_def(HEIGHT, 0.5, TYPE_FLOAT, PROPERTY_HINT_RANGE, "0.1,1,0.05",
 			"Fraction of the screen the console covers when not full screen."),
-		_def(CANVAS_LAYER, 3, TYPE_INT, PROPERTY_HINT_NONE, "",
-			"CanvasLayer index. Raise it above your own HUD layers."),
 		_def(FONT_SIZE, 0, TYPE_INT, PROPERTY_HINT_RANGE, "0,64,1",
 			"Font size override. 0 uses the theme's own size."),
 
@@ -76,6 +78,11 @@ static func definitions() -> Array[Dictionary]:
 		_def(SUGGESTION_LIMIT, 8, TYPE_INT, PROPERTY_HINT_RANGE, "1,30,1",
 			"How many autocomplete suggestions to show at once."),
 
+		# Level Utils
+		_def(LEVELS_PREFIX, "_level", TYPE_STRING, PROPERTY_HINT_NONE, "",
+			"The level prefix used by load_level"),
+		_def(LEVELS_DIR, "res://levels", TYPE_STRING, PROPERTY_HINT_NONE, "",
+			"The folder containing thel levels"),
 		# Colors
 		_def(COLOR_TEXT, Color("c7d8ec"), TYPE_COLOR, PROPERTY_HINT_COLOR_NO_ALPHA, "",
 			"Default output colour."),

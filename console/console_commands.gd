@@ -67,18 +67,16 @@ func register_builtins() -> void:
 # ─── Built‑in implementations ──────────────────────────────────────────
 
 func _quit() -> void:
-	# Uncomment to enable quit functionality
-	# get_tree().quit()
-	pass
-
+	console.get_tree().quit()
+	
 func _clear() -> void:
-	console.rich_label.clear()
+	console.ui.rich_label.clear()
 
 func _delete_history() -> void:
 	console.history.clear()
 
 func _help() -> void:
-	console.rich_label.append_text("	Built in commands:
+	console.ui.rich_label.append_text("	Built in commands:
 		[system_color color=CONSOLE_COLOR_LITERAL]calc[/system_color]: Calculates a given expression
 		[system_color color=CONSOLE_COLOR_LITERAL]clear[/system_color]: Clears the registry view
 		[system_color color=CONSOLE_COLOR_LITERAL]commands[/system_color]: Shows a reduced list of all the currently registered commands
@@ -107,8 +105,8 @@ func _commands() -> void:
 		if not commands[command].hidden:
 			list.append(str(command))
 	list.sort()
-	console.rich_label.append_text("	")
-	console.rich_label.append_text(str(list) + "\n\n")
+	console.ui.rich_label.append_text("	")
+	console.ui.rich_label.append_text(str(list) + "\n\n")
 
 func _commands_list() -> void:
 	var list: Array = []
@@ -124,8 +122,8 @@ func _commands_list() -> void:
 				args += "  [system_color color=CONSOLE_COLOR_ERROR]<" + cmd.arguments[i] + ">[/system_color]"
 			else:
 				args += "  [system_color color=CONSOLE_COLOR_INFO]<" + cmd.arguments[i] + ">[/system_color]"
-		console.rich_label.append_text("	[system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color]%s:   %s\n" % [command, args, cmd.description])
-	console.rich_label.append_text("\n")
+		console.ui.rich_label.append_text("	[system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color]%s:   %s\n" % [command, args, cmd.description])
+	console.ui.rich_label.append_text("\n")
 
 func _cvars() -> void:
 	var names: Array = console.cvars.cvars.keys()
@@ -135,8 +133,8 @@ func _cvars() -> void:
 		var value_string := "<invalid>"
 		if cvar.is_alive():
 			value_string = str(cvar.get_value())
-		console.rich_label.append_text("	[system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color] = [system_color color=CONSOLE_COLOR_INFO]%s[/system_color]   %s\n" % [cvar_name, value_string, cvar.description])
-	console.rich_label.append_text("\n")
+		console.ui.rich_label.append_text("	[system_color color=CONSOLE_COLOR_LITERAL]%s[/system_color] = [system_color color=CONSOLE_COLOR_INFO]%s[/system_color]   %s\n" % [cvar_name, value_string, cvar.description])
+	console.ui.rich_label.append_text("\n")
 
 func _calculate(expression: String) -> void:
 	var expr := Expression.new()
@@ -163,14 +161,11 @@ func _echo_error(text: String) -> void:
 	console.print_error(text)
 
 func _pause() -> void:
-	# Uncomment to enable pause functionality
-	# get_tree().paused = true
-	pass
+	console.get_tree().paused = true
 
 func _unpause() -> void:
-	# Uncomment to enable unpause functionality
-	# get_tree().paused = false
-	pass
+	console.get_tree().paused = false
+
 
 func _exec(filename: String) -> void:
 	var path := "user://%s.txt" % [filename]

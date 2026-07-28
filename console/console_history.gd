@@ -42,18 +42,18 @@ func up() -> void:
 	if history_index <= 0:
 		return
 	history_index -= 1
-	console.line_edit.text = history[history_index]
-	console.line_edit.caret_column = console.line_edit.text.length()
+	console.ui.line_edit.text = history[history_index]
+	console.ui.line_edit.caret_column = console.ui.line_edit.text.length()
 
 func down() -> void:
 	if history_index >= history.size():
 		return
 	history_index += 1
 	if history_index < history.size():
-		console.line_edit.text = history[history_index]
-		console.line_edit.caret_column = console.line_edit.text.length()
+		console.ui.line_edit.text = history[history_index]
+		console.ui.line_edit.caret_column = console.ui.line_edit.text.length()
 	else:
-		console.line_edit.text = ""
+		console.ui.line_edit.text = ""
 
 func reset() -> void:
 	history_index = history.size()

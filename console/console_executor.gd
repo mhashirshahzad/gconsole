@@ -6,13 +6,14 @@ var console: Node
 func _init(in_console: Node) -> void:
 	console = in_console
 
+
 func execute(new_text: String) -> void:
-	console.scroll_to_bottom()
+	console.ui.scroll_to_bottom()
 	console.autocomplete.reset()
 
-	console.line_edit.clear()
-	if console.line_edit.has_method(&"edit"):
-		console.line_edit.call_deferred(&"edit")
+	console.ui.line_edit.clear()
+	if console.ui.line_edit.has_method(&"edit"):
+		console.ui.line_edit.call_deferred(&"edit")
 
 	if new_text.strip_edges().is_empty():
 		return
@@ -20,7 +21,7 @@ func execute(new_text: String) -> void:
 	console.history.add(new_text)
 	console.print_line("[i]> " + new_text + "[/i]")
 
-	var split : PackedStringArray = console.parse_line_input(new_text)
+	var split: PackedStringArray = console.parse_line_input(new_text)
 	var command := split[0]
 
 	if console.commands.commands.has(command):
@@ -33,6 +34,7 @@ func execute(new_text: String) -> void:
 
 	console.console_unknown_command.emit(command)
 	console.print_error("Unknown command or variable.")
+
 
 func _execute_command(command: String, arguments: PackedStringArray) -> void:
 	var cmd: GConsole.ConsoleCommand = console.commands.commands[command]
