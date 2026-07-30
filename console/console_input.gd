@@ -74,6 +74,11 @@ func _handle_key_input(event: InputEventKey) -> void:
 			ui.line_edit.accept_event()
 
 			console.get_viewport().set_input_as_handled()
+		
+		KEY_RIGHT:
+			if console.autocomplete.suggestion_panel.visible:
+				console.autocomplete.accept()
+				get_viewport().set_input_as_handled()
 			
 func _handle_mouse_input(event: InputEventMouseButton) -> void:
 	if not event.is_command_or_control_pressed():

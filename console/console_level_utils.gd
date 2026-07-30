@@ -41,11 +41,12 @@ static func load_level(level_name: String, console: Node) -> void:
 		return
 
 	console.print_info("Loading %s" % path)
-
-	if loader.is_valid():
-		loader.call(path)
-		return
-	console.get_tree().change_scene_to_file(path)
+	
+	## TODO: Why are you using this @rajpootathar @claude
+	#if loader.is_valid():
+		#loader.call(path)
+		#return
+	TransitionManager.transition_scene_file(path)
 
 
 ## Resolves a level by any reasonable spelling: "tutorial", "tutorial_level" and

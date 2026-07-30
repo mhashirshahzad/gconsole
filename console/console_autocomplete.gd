@@ -173,6 +173,17 @@ func cycle() -> void:
 
 	suggesting = true
 
+func accept() -> void:
+	if suggestions.is_empty():
+		return
+
+	if current_suggest < 0 or current_suggest >= suggestions.size():
+		return
+
+	console.ui.line_edit.text = suggestions[current_suggest]
+	console.ui.line_edit.caret_column = console.ui.line_edit.text.length()
+
+	reset()
 
 func reset() -> void:
 	suggestions.clear()
