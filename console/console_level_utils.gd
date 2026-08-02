@@ -11,15 +11,17 @@ class_name ConsoleLevelUtils
 static var _level_paths: Dictionary = {}
 static var _initialized := false
 
-## Optional hook a host game can install to take over loading — to fade, save,
+## Optional hook a host game installs to take over loading — to fade, save,
 ## close menus, whatever it needs. Receives the resolved res:// path.
 ##
-## Without it the scene is swapped directly, so the plugin still works standalone
-## in a project that has no transition system. With it, the game keeps its
-## polish and does not need a second, competing level command.
+## This is the plugin's only supported way to keep a game's own transition,
+## which is why load_level() has no game-specific code in it. Unset, loading
+## falls back to a TransitionManager autoload if one exists and to a plain
+## change_scene_to_file() otherwise, so the plugin still works dropped into a
+## project that has neither.
 ##
 ##     ConsoleLevelUtils.loader = func(path: String) -> void:
-##         UIManager.change_level(path)
+##         TransitionManager.transition_scene_file(path)
 static var loader : Callable = Callable()
 
 
@@ -41,12 +43,26 @@ static func load_level(level_name: String, console: Node) -> void:
 		return
 
 	console.print_info("Loading %s" % path)
-	
-	## TODO: Why are you using this @rajpootathar @claude
-	#if loader.is_valid():
-		#loader.call(path)
-		#return
-	TransitionManager.transition_scene_file(path)
+
+	# Three tiers, most specific first. The hook is what makes this plugin
+	# reusable: without it the only way to get a fade was to name a particular
+	# game's autoload here, which is a hard dependency an addon has no business
+	# having - drop this plugin into a project with no TransitionManager and it
+	# would not even parse past the lookup.
+	if loader.is_valid():
+		loader.call(path)
+		return
+
+	# Looked up by node path rather than by the global name, because naming the
+	# autoload directly is a compile-time reference that fails to resolve in a
+	# project that does not have it.
+	var tree : SceneTree = console.get_tree()
+	var transitions : Node = tree.root.get_node_or_null(^"TransitionManager")
+	if transitions != null and transitions.has_method(&"transition_scene_file"):
+		transitions.call(&"transition_scene_file", path)
+		return
+
+	tree.change_scene_to_file(path)
 
 
 ## Resolves a level by any reasonable spelling: "tutorial", "tutorial_level" and
